@@ -1,0 +1,274 @@
+\documentclass[a4paper,footrule,landscape]{foils}
+
+\usepackage{jmbr-traspas}
+\usepackage[latin1]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath,hhline,fancybox,pifont}
+\usepackage[noend]{algoritmico}
+\usepackage{epsfig,epic,ecltree,alltt}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% DOCUMENT0
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Definición inicial de los bordes 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\rightheader{} \leftheader{} \rightfooter{} \MyLogo{}
+\Restriction{}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Cabecera
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{\vspace{10mm}\textbf{\textcolor{blue}
+   {LENGUAJES DE PROGRAMACIÓN \\
+    Y\\
+   PROCESADORES DE LENGUAJES}}}
+ 
+\author{\vspace{5mm} \mbox{}\\ 
+  {\Large Construcción de un compilador}}
+
+\date{\vspace{10mm}\mbox{}\\
+\textcolor{blue}{\LARGE \texttt{MenosC}}
+\vspace{25mm}\mbox{}\\
+{\Large Parte-I: Análisis léxico sintáctico}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\maketitle
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\setcounter{page}{0} 
+\rightfooter{Lenguaje de Programación y Procesadores de
+  Lenguajes~~\textsf{\thepage}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{construcción de un compilador}
+
+\vspace{2mm}\noindent%
+El objetivo principal es la \textcolor{blue}{construcción de un
+  compilador} completo, \\[4mm]
+para un Lenguaje de Programación de alto nivel, sencillo pero no
+trivial
+
+\vspace{14mm}\hspace{9cm}
+\texttt{\textcolor{blue}{\Large MenosC}}
+
+\vspace{15mm}
+\begin{tabular}{lp{22cm}}
+\texttt{Parte~~~I}& Construcción del analizador 
+  léxico-sintáctico\\[4mm]
+&\multicolumn{1}{r}{$\Rightarrow$ ~~límite de entrega 
+  \textbf{~~~8 de noviembre de 2020}}\\[7mm]
+\texttt{Parte~~II}& Construcción del analizador 
+  semántico\\[4mm]
+&\multicolumn{1}{r}{$\Rightarrow$ ~límite de entrega 
+  \textbf{~~~6 de diciembre de 2020}}\\[7mm]
+\texttt{Parte~III}& Construcción del generador 
+  de código intermedio\\[4mm]
+&\multicolumn{1}{r}{$\Rightarrow$ ~límite de entrega 
+  \textbf{~15 de enero de 2021}}\\[4mm]
+&\multicolumn{1}{r}{[~para la recuperación:
+  \textbf{~~27 de enero de 2021}~]}
+\end{tabular}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{Especificación Léxica}
+
+\vspace{0mm}
+\begin{blistas}{0}{2}
+\item Los identificadores son cadenas de letras (incluyendo
+  ``\texttt{\_}'') y dígitos, \\[2mm]
+  que comienzan siempre por una letra.  Debe distinguirse
+  entre\\[2mm] mayúsculas y minúsculas.
+\item Las palabras reservadas se deben escribir en minúscula.
+\item En un programa fuente puedan aparecer constantes enteras y
+  reales; \\[2mm]
+  por ejemplo: \texttt{~~28 ~~28. ~~.55 ~~28.55}
+\item El signo $+$ (ó $-$) de las constantes numéricas se tratará 
+  como\\[2mm]
+  un símbolo léxico independiente.
+\item Los espacios en blanco, retornos de linea y tabuladores deben
+  ignorarse.
+\item Los comentarios deben ir precedidos por la doble barra
+  (\texttt{//}) y terminar \\[2mm]
+  con el fin de la linea.  Los comentarios no se pueden anidar.
+\end{blistas}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{Especificación Sintáctica}
+
+\vspace{-3mm}
+\begin{center}
+\begin{tabular}{|l@{ }c@{ }l|}\hline
+&&\\[-4mm]
+programa                      &$\rightarrow$&  
+  listaDeclaraciones
+\\[3mm]
+listaDeclaraciones            &$\rightarrow$& 
+  declaracion $\;|\;$ listaDeclaraciones  ~declaracion
+\\[3mm]
+declaracion                   &$\rightarrow$&  
+  declaracionVariable $\;|\;$ declaracionFuncion
+\\[3mm]
+declaracionVariable           &$\rightarrow$&   
+  tipoSimple {\bf id} ; $\;|\;$ tipoSimple {\bf id} [ {\bf cte} ] ;
+\\[3mm]
+tipoSimple                    &$\rightarrow$&  
+  {\bf int} $\;|\;$ {\bf bool}
+\\[3mm]
+declaracionFuncion            &$\rightarrow$&
+   cabeceraFuncion ~bloque
+\\[3mm]
+cabeceraFuncion               &$\rightarrow$&
+  tipoSimple {\bf id} ( parametrosFormales )
+\\[3mm]
+parametrosFormales            &$\rightarrow$&
+  $\epsilon$ $\;|\;$ listaParametrosFormales
+\\[3mm]
+listaParametrosFormales       &$\rightarrow$&
+  tipoSimple  {\bf id} $\;|\;$ 
+  tipoSimple  {\bf id} , listaParametrosFormales
+\\[3mm]  
+bloque                        &$\rightarrow$&
+  \{ declaracionVariableLocal ~listaInstrucciones 
+\\[3mm]  
+&& {\bf return} ~expresion ; \}
+\\[3mm]       
+declaracionVariableLocal      &$\rightarrow$&
+  $\epsilon$ $\;|\;$ declaracionVariableLocal ~declaracionVariable
+\\[2mm]\hline       
+\end{tabular}
+\end{center}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{Especificación Sintáctica}
+
+\vspace{-3mm}
+\hspace{-5mm}\begin{tabular}{|l@{ }c@{ }l|}\hline
+&&\\[-4mm]
+listaInstrucciones            &$\rightarrow$& 
+  $\epsilon$ $\;|\;$ listaInstrucciones ~instruccion
+\\[3mm]
+instruccion                   &$\rightarrow$& 
+  \{ listaInstrucciones \} 
+  $\;|\; $ instruccionAsignacion
+\\[3mm]
+&&$\;|\;$ instruccionSeleccion $\;|\; $ instruccionEntradaSalida 
+\\[3mm]
+&&$\;|\;$  instruccionIteracion
+\\[3mm]
+instruccionAsignacion         &$\rightarrow$&  
+  {\bf id} = expresion ;
+  $\;|\;$ {\bf id} ~[ ~expresion ~] = expresion ;
+\\[3mm]
+instruccionEntradaSalida      &$\rightarrow$& 
+  \textbf{read} ( \textbf{id} ) ; 
+  $\;|\; $ \textbf{print} ( expresion ) ;
+\\[3mm]
+instruccionSeleccion          &$\rightarrow$& 
+  \textbf{if} ( expresion ) instruccion {\bf else} ~instruccion
+\\[3mm]
+instruccionIteracion         &$\rightarrow$& 
+  {\bf for} ( expresionOpcional ; expresion ; 
+  expresionOpcional )
+\\[3mm]
+&& instruccion 
+\\[3mm]
+expresionOpcional            &$\rightarrow$& 
+  $\epsilon$ $\;|\;$ expresion $\;|\;$ {\bf id} = expresion
+\\[3mm]
+expresion                    &$\rightarrow$& 
+  expresionIgualdad                     \\[1mm]
+ && $\; |\;$ expresion ~operadorLogico ~~expresionIgualdad     
+\\[2mm]\hline
+\end{tabular}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{Especificación Sintáctica}
+
+\vspace{-3mm}
+\begin{center}
+\begin{tabular}{|l@{ }c@{ }l|}\hline
+&&\\[-4mm]
+expresionIgualdad     &$\rightarrow$& expresionRelacional            
+\\[3mm]
+ && $\;|\;$ expresionIgualdad ~operadorIgualdad ~expresionRelacional 
+\\[3mm]
+expresionRelacional     &$\rightarrow$& expresionAditiva             
+\\[3mm]
+ && $\;|\;$ expresionRelacional ~operadorRelacional ~expresionAditiva
+\\[3mm]
+expresionAditiva        &$\rightarrow$& expresionMultiplicativa      
+\\[3mm]
+ && $\;|\;$ 
+    expresionAditiva ~operadorAditivo ~expresionMultiplicativa       
+\\[3mm]
+expresionMultiplicativa &$\rightarrow$& expresionUnaria              
+\\[3mm]
+ && $\;|\;$ 
+    expresionMultiplicativa operadorMultiplicatico 
+\\[3mm]
+&& $\quad$ expresionUnaria 
+\\[3mm]
+expresionUnaria         &$\rightarrow$&  expresionSufija 
+ $\;|\;$ operadorUnario ~expresionUnaria                             
+\\[3mm]
+ && $\;|\;$ operadorIncremento {\bf id}                              
+\\[3mm]
+expresionSufija         &$\rightarrow$&
+  ( expresion ) $\;|\;$ {\bf id} operadorIncremento  
+  $\;|\;$ {\bf id} [ expresion ]                                     
+\\[3mm]
+ && $\;|\;$ {\bf id} ( parametrosActuales ) $\;|\;$ 
+    {\bf id} $\;|\;$ constante
+\\[2mm]\hline
+\end{tabular}
+\end{center}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{Especificación Sintáctica}
+
+\vspace{-3mm}
+\begin{center}
+\begin{tabular}{|l@{ }c@{ }l|}\hline
+&&\\[-4mm]
+parametrosActuales            &$\rightarrow$& 
+  $\epsilon$ $\;|\;$ listaParametrosActuales
+\\[3mm] 
+listaParametrosActuales        &$\rightarrow$& 
+  expresion $\;|\;$ expresion , listaParametrosActuales
+\\[3mm] 
+constante  &$\rightarrow$& 
+  {\bf cte} $\; |\; $ {\bf true} $\; |\; $ {\bf false}               
+\\[3mm]
+operadorLogico          &$\rightarrow$&       
+  \texttt{~\&\&} $\;\;|\;\;$ \texttt{||}                         
+\\[3mm]
+operadorIgualdad      &$\rightarrow$& 
+  \texttt{~==} $\;\;|\;\;$ \texttt{!=}                           
+\\[3mm]
+operadorRelacional      &$\rightarrow$& 
+  \texttt{~>}  $\;\;|\;\;$ \texttt{<}  $\;\;|\;\;$ 
+  \texttt{>=} $\;\;|\;\;$ \texttt{<=}                            
+\\[3mm]
+operadorAditivo         &$\rightarrow$& 
+  \texttt{~+} $\;\;|\;\;$ \texttt{-}                             
+\\[3mm]
+operadorMultiplicativo  &$\rightarrow$& 
+  \texttt{~*} $\;\;|\;\;$ \texttt{/}                             
+\\[3mm]
+operadorUnario           &$\rightarrow$& 
+  \texttt{~+} $\;\;|\;\;$ \texttt{-} $\;\;|\;\;$ \texttt{!}      
+\\[3mm]
+operadorIncremento           &$\rightarrow$& 
+  \texttt{~++} $\;\;|\;\;$ \texttt{--}                           
+\\[2mm]\hline
+\end{tabular}
+\end{center}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

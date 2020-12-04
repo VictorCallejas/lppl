@@ -1,0 +1,681 @@
+\documentclass[a4paper,footrule,landscape]{foils}
+
+\usepackage{jmbr-traspas}
+\usepackage[latin1]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath,hhline,fancybox,pifont}
+\usepackage[noend]{algoritmico}
+\usepackage{epsfig,epic,ecltree,alltt}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% DOCUMENT0
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Definición inicial de los bordes 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\rightheader{} \leftheader{} \rightfooter{} \MyLogo{}
+\Restriction{}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Cabecera
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{\vspace{10mm}\textbf{\textcolor{blue}
+   {LENGUAJES DE PROGRAMACIÓN \\
+    Y\\
+   PROCESADORES DE LENGUAJES}}}
+ 
+\author{\vspace{5mm} \mbox{}\\ 
+  {\Large Construcción de un compilador}}
+
+\date{\vspace{10mm}\mbox{}\\
+\textcolor{blue}{\LARGE \texttt{MenosC}}
+\vspace{25mm}\mbox{}\\
+{\Large Parte-II: comprobaciones semánticas}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\maketitle
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\setcounter{page}{0} 
+\rightfooter{Lenguaje de Programación y Procesadores de
+  Lenguajes~~\textsf{\thepage}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{construcción de un compilador}
+
+\vspace{5mm}
+\noindent\textcolor{blue}{\Large Material auxiliar de prácticas} 
+
+\begin{blistas}{15}{7}
+\item \textcolor{blue}{\texttt{\large Makefile}}. ~Una nueva versión.
+\item \textcolor{blue}{\texttt{\large principal.c}}. ~Una nueva
+  versión en el directorio \texttt{\bf ~src}.
+\item \textcolor{blue}{\texttt{\large libtds}}. ~Librería con las
+  operaciones para la manipulación de la \textcolor{blue}{Tabla de
+    Símbolos}
+
+  \vspace{7mm}\hspace{10mm}%
+  \textcolor{blue}{\texttt{libtds.h}}, ~el fichero de cabecera, en el
+  directorio \texttt{\bf ~include};
+
+  \vspace{5mm}\hspace{10mm}%
+  \textcolor{blue}{\texttt{libtds.a}}, ~la librería, en el directorio
+  \texttt{\bf ~lib}.
+
+\item \textcolor{blue}{\large {\em Programas de prueba}}.
+\end{blistas}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{Especificación Semántica}
+
+\vspace{-5mm}
+\begin{blistas}{0}{2}
+\item Todas las variables y funciones deben declararse antes de ser
+  utilizadas.
+%
+\item Debe haber una función, y solo una, con el nombre
+  \texttt{main}. 
+%   
+\item La información de los parámetros se sitiuará en la TdS, en
+  orden inverso \\[2mm]a su declaración.
+%
+\item El paso de parámetros se hace siempre por valor. 
+%
+\item Se admite la recursividad en las funciones.
+%
+\item En el compilador solo se usan constantes enteras. Si el
+  analizador léxico encuentra\\[2mm]
+  una constante real se debe devolver su valor entero truncado.
+%
+\item La talla de los tipos {\em entero} ~y {\em lógico} ~se debe
+  definir en {\sc talla\_tipo\_simple}$=1$.
+%
+\item El tipo lógico \texttt{bol} se representa numéricamente como un
+  entero: con el valor 0, \\[2mm]
+  para el caso \texttt{falso}, y 1, para el caso \texttt{verdad}.
+\end{blistas}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{Especificación Semántica}
+
+\vspace{-5mm}
+\begin{blistas}{0}{2}
+%
+\item No existe conversión de tipos entre ~\texttt{int} ~y
+  ~\texttt{bool}.
+%
+\item Los índices de los vectores van de \texttt{0} a \texttt{cte-1},
+  siendo \texttt{cte} el número de elementos, \\[2mm]
+  que debe ser un entero positivo.
+%
+\item No es necesario comprobar los índices de los vectores en tiempo
+  de ejecución.
+%
+\item Los operadores de incremento y decremento (infijos y postfijos)
+  solo se pueden\\[2mm] aplicar a variables (p.ej. \texttt{(i+j)++}
+  ~es ilegal).
+%
+\item En la instrucción \texttt{for} las \textit{expresiones
+    opcionales} deben ser asignaciones o\\[2mm] o expresiones (pueden
+  no aparecer). La \textit{expresión}, como en {\sc C}, debe ser
+  \\[2mm]de tipo lógico y debe aparecer explícitamente.
+%
+\item La expresión de la instrucción \texttt{if-else} debe ser de
+     tipo lógico.
+%
+\item Por defecto las restricciones semánticas serán las propias del
+  lenguaje ANSI $C$.
+\end{blistas}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{Tabla de Símbolos}
+
+\vspace{-10mm}
+\begin{blistas}{0}{2}
+\item \textcolor{blue}{\large Estructura de la TDS}
+
+  Constantes, variables globales y estructuras
+  básicas\hfill (ver Sección \texttt{5.1} del Enunciado)
+
+\item \textcolor{blue}{\large Funciones de manipulación de la TDS}
+
+\vspace{0mm}
+\begin{small}
+\begin{alltt}
+void \underline{cargaContexto} (int n) ;
+\textcolor{blue}{/* Crea el contexto necesario para los objetos globales y para los objetos 
+   locales a las funciones                                                  */}
+void \underline{descargaContexto} (int n) ;
+\textcolor{blue}{/* Libera en la TdB y la TdS el contexto asociado con la función.           */}
+int \underline{insTdS} (char *nom, int cat, int tipo, int n, int desp, int ref) ;
+\textcolor{blue}{/* Inserta en la TdS toda la información asociada con una variable de nombre,
+   "nom"; categoría, "cat"; tipo, "tipo"; nivel del bloque, "n"; desplaza-
+   miento relativo, "desp"; y referencia, "ref", a posibles subtablas de 
+   vectores o dominios, siendo (-1) si es de tipo simple. Si la variable ya 
+   existe devuelve el valor "FALSE=0" ("TRUE=1" en caso contrario).         */}
+SIMB \underline{obtTdS} (char *nom) ;
+\textcolor{blue}{/* Obtiene toda la información asociada con un objeto de nombre, "nom", y la
+   devuelve en una estructura de tipo "SIMB" (ver "libtds.h"). Si el objeto 
+   no está declarado, devuelve "T_ERROR" en el campo "tipo".                */}
+\end{alltt}
+\end{small}
+\end{blistas}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{Tabla de Símbolos}
+
+\vspace{-10mm}
+\begin{blistas}{0}{-2}
+\item[] \mbox{}
+\begin{small}
+\begin{alltt}
+int \underline{insTdA} (int telem, int nelem) ;
+\textcolor{blue}{/* Inserta en la Tabla de array la información de un array con elementos de 
+   tipo, "telem"; y número de elementos, "nelem". Devuelve su referencia en 
+   la Tabla de Arrays.                                                      */}
+DIM \underline{obtTdA} (int ref) ;
+\textcolor{blue}{/* Devuelve toda la información asociada con un array referenciado por "ref" 
+   en la Tabla de Arrays. En caso de error devuelve "T_ERROR" en el campo 
+   "telem".                                                                 */}
+int \underline{insTdD} (int refe, int tipo) ;
+\textcolor{blue}{/* Para un dominio existente referenciado por "refe", inserta en la Tabla 
+   de Dominios la informacion del "tipo" del parámetro. Si "ref= -1" entonces
+   crea una nueva entrada en la tabla de dominios para el tipo de este 
+   parámetro y devuelve su referencia.  Si la funcion no tiene parametros, 
+   debe crearse un dominio vacio con: "refe = -1" y "tipo = T_VACIO".       */}
+INF \underline{obtTdD} (int refe) ;
+\textcolor{blue}{/* Si "refe<0" entonces devuelve la informacion de la funcion actual, y si
+   "refe>=0", devuelve la informacion de una función ya compilada con 
+   referencia "refe". La informacion es: el nombre y el tipo del rango de la 
+   función y la talla del segmento de parámetros. Si "refe" no se corresponde
+   con una funcion ya compilada, devuelve "T_ERROR" en el campo "tipo".     */}
+
+\end{alltt}
+\end{small}
+\end{blistas}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{Tabla de Símbolos}
+
+\vspace{-10mm}
+\begin{blistas}{0}{-2}
+\item[] \mbox{}
+\begin{small}
+\begin{alltt}
+int \underline{cmpDom} (int refx, int refy) ;
+\textcolor{blue}{/* Si los dominios referenciados por "refx" y "refy" no coinciden devuelve 
+   "FALSE=0" ("TRUE=1" si son iguales).                                     */}
+void \underline{mostrarTdS} () ;
+\textcolor{blue}{/* Muestra toda la información de la TdS para objetos globales y locales.
+   Se recomienda hacerlo (si "verTdS = true") al finalizar la compilación
+   de la función, justo antes de ("descargarContexto").                     */}
+\end{alltt}
+\end{small}
+\end{blistas}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{ejemplo: comprobaciones semánticas}
+
+\vspace{0mm}
+\begin{blistas}{10}{5}
+\item \textcolor{blue}{\Large Ejemplo de comprobaciones de tipo en
+    {\em declaraciones}}
+
+\vspace{0mm}
+\begin{alltt}
+declaracion | tipoSimple  ID_  AC_  CTE_  CC_  PCOMA_
+
+            \{ int numelem = \$4; 
+              if (\$4 <= 0)  \{
+                yyerror("Talla inapropiada del array");
+                numelem = 0;
+              \}
+              int refe = insTdA(\$1, numelem);
+              if ( ! insTdS(\$2, VARIABLE, T_ARRAY, niv, dvar, refe) )
+                yyerror ("Identificador repetido");  
+             else dvar += numelem * TALLA_TIPO_SIMPLE;
+            \}
+\end{alltt}
+\end{blistas}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{ejemplo: comprobaciones semánticas}
+
+\vspace{-0mm}
+\begin{blistas}{10}{5}
+\item \textcolor{blue}{\Large Ejemplo de comprobaciones de tipos en
+    la {\em asignación}}
+
+\vspace{-5mm}
+\begin{alltt}
+instruccionAsignacion
+       | ID_  ASIG_  expresion  PCOMA_
+
+         \{ SIMB sim = obtTdS(\$1);
+
+           if (sim.t == T_ERROR) yyerror("Objeto no declarado");
+           else if (! ((sim.t == \$3.t == T_ENTERO) ||
+                       (sim.t == \$3-t == T_LOGICO)))
+             yyerror("Error en la `instrucción de asignación'");
+         \}
+\end{alltt}
+\end{blistas}
+
+\vspace{-15mm}
+\rule{270mm}{0.4mm}
+
+\vspace{1mm}
+\begin{small}
+  $\dagger$ ~~Advertid que este código se debería modificar para que
+  solo proporcione un nuevo mensaje de error\\
+  \mbox{}~~~~si el error se produce en esta regla, y no si proviene de
+  errores anteriores a través de $\ \$1$ ~o $\ \$3$.
+\end{small}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{acciones semáticas en {\sc bison}}    % 0/6
+
+\vspace{0mm}
+\begin{tabular}{c|c}
+\begin{minipage}[c]{.30\linewidth}
+\hspace{10mm}exp$\;\rightarrow\;$fac$\;*\; cte$
+
+\vspace{15mm}\hspace{5mm}
+\begin{tabular}{|c|c|}
+ & \\[4mm]
+\textcolor{blue}{\footnotesize CTE\_}     & $\bigcirc$ \\[4mm]
+\textcolor{blue}{\footnotesize OPMULT\_} &  ---       \\[4mm]
+\textcolor{red}{$<$fac$>$}     & $\bigcirc$ \\[2mm]
+$\ldots$ &$\ldots$\\[4mm] \hline
+\end{tabular}
+
+\vspace{6mm}\hspace{-4mm} %
+símbolos $\hookleftarrow\quad\hookrightarrow$ atributos
+
+\vspace{15mm}
+\textcolor{white}{\begin{alltt}
+\%union \{
+  char* ident; 
+  int   cent;  
+\}
+\end{alltt}}
+\end{minipage} 
+&
+% \begin{minipage}[c]{.70\linewidth}
+% \begin{listas}{}{10}{5}
+% \item [\texttt{\bf 1.}] \textcolor{blue}{\large Definir tipos de
+%     atributos}
+
+%   Equivale a definir los tipos de los elementos de la \\[2mm]
+%   pila de atributos. La cima de la pila de atributos \\[2mm]
+%   es la variable \textcolor{blue}{\texttt{~yylval}}
+
+%   Para resolver la no-homogeneidad de los tipos se define, \\[2mm]
+%   en el programa {\sc bison}, una estructura
+%   \textcolor{blue}{\texttt{~\%union}}
+
+% \vspace{2mm}
+% \begin{alltt}
+% \%union \{
+%   char* ident; \textcolor{blue}{/* terminal "identificador"*/}
+%   int   cent;  \textcolor{blue}{/* terminal "cte" entera   */}
+% \}
+% \end{alltt}
+% \end{listas}
+% \end{minipage}
+\end{tabular}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{acciones semáticas en {\sc bison}}  %  1/6
+
+\vspace{0mm}
+\begin{tabular}{c|c}
+\begin{minipage}[c]{.30\linewidth}
+\hspace{10mm}exp$\;\rightarrow\;$fac$\;*\; cte$
+
+\vspace{15mm}\hspace{5mm}
+\begin{tabular}{|c|c|}
+& \\[4mm]
+\textcolor{blue}{\footnotesize CTE\_}     & $\bigcirc$ \\[4mm]
+\textcolor{blue}{\footnotesize OPMULT\_} &  ---       \\[4mm]
+\textcolor{red}{$<$fac$>$}     & $\bigcirc$ \\[2mm]
+$\ldots$ &$\ldots$\\[4mm] \hline
+\end{tabular}
+
+\vspace{6mm}\hspace{-4mm} %
+símbolos $\hookleftarrow\quad\hookrightarrow$ atributos
+
+\vspace{15mm}
+\textcolor{white}{\begin{alltt}
+\%union \{
+  char* ident; 
+  int   cent;  
+\}
+\end{alltt}}
+\end{minipage} 
+&
+\begin{minipage}[c]{.70\linewidth}
+\begin{listas}{}{0}{5}
+\item [\texttt{\bf 1.}] \textcolor{blue}{\large Definir tipos de
+    atributos}
+
+  Equivale a definir los tipos de los elementos de la \\[2mm]
+  pila de atributos. La cima de la pila de atributos \\[2mm]
+  es la variable \textcolor{blue}{\texttt{~yylval}}
+
+  Para resolver la no-homogeneidad de los tipos se define, \\[2mm]
+  en el programa {\sc bison}, una estructura
+  \textcolor{blue}{\texttt{~\%union}}
+
+\begin{alltt}
+
+
+\%union \{
+  char* ident; \textcolor{blue}{/* terminal "identificador"*/}
+  int   cent;  \textcolor{blue}{/* terminal "cte" entera   */}
+\}
+\end{alltt}
+\end{listas}
+\end{minipage} 
+\end{tabular}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{acciones semáticas en {\sc bison}}   %  2/6
+
+\vspace{0mm}
+\begin{tabular}{c|c}
+\begin{minipage}[c]{.30\linewidth}
+\hspace{10mm}exp$\;\rightarrow\;$fac$\;*\; cte$
+
+\vspace{15mm}\hspace{5mm}
+\begin{tabular}{|c|c|}
+& \\[4mm]
+\textcolor{blue}{\footnotesize CTE\_}     & $\bigcirc$ \\[4mm]
+\textcolor{blue}{\footnotesize OPMULT\_} &  ---       \\[4mm]
+\textcolor{red}{$<$fac$>$}     & $\bigcirc$ \\[2mm]
+$\ldots$ &$\ldots$\\[4mm] \hline
+\end{tabular}
+
+\vspace{6mm}\hspace{-4mm} %
+símbolos $\hookleftarrow\quad\hookrightarrow$ atributos
+
+\vspace{15mm}
+\begin{alltt}
+\%union \{
+  char* ident; 
+  int   cent;  
+\}
+\end{alltt}
+\end{minipage} 
+&
+\begin{minipage}[c]{.70\linewidth}
+\begin{listas}{}{0}{5}
+\item \item [\texttt{\bf 2.}] \textcolor{blue}{\large Asociar tipos a
+    símbolos}
+
+  Asigna a cada símbolo de la gramática sus atributos \\[2mm]
+  correspondientes
+
+\vspace{15mm}
+\begin{alltt}
+\%token<ident> ID_
+\%token<cent>  CTE_
+\%type<cent>   exp fac
+\end{alltt}
+
+% \vspace{-20mm}
+% \item \item [\texttt{\bf 3.}] \textcolor{blue}{\large Calcular
+%     atributos de terminales}
+
+%   La información de la \textcolor{blue}{\texttt{~\%union}} ~también se
+%   propaga \\[2mm]
+%   en el fichero \textcolor{blue}{~asin.h} ~al AL.
+
+% \vspace{0mm}
+% \begin{alltt}
+% [0-9]+ 
+%   \{yylval.cent=atoi(yytext); return(CTE_);\} 
+
+%\end{alltt}
+\end{listas}
+\end{minipage} 
+\end{tabular}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{acciones semáticas en {\sc bison}} %  3/6
+
+\vspace{0mm}
+\begin{tabular}{c|c}
+\begin{minipage}[c]{.30\linewidth}
+\hspace{10mm}exp$\;\rightarrow\;$fac$\;*\; cte$
+
+\vspace{15mm}\hspace{5mm}
+\begin{tabular}{|c|c|}
+ & \\[4mm]
+\textcolor{blue}{\footnotesize CTE\_}     & $\bigcirc$ \\[4mm]
+\textcolor{blue}{\footnotesize OPMULT\_} &  ---       \\[4mm]
+\textcolor{red}{$<$fac$>$}     & $\bigcirc$ \\[2mm]
+$\ldots$ &$\ldots$\\[4mm] \hline
+\end{tabular}
+
+\vspace{6mm}\hspace{-4mm} %
+símbolos $\hookleftarrow\quad\hookrightarrow$ atributos
+
+\vspace{15mm}
+\begin{alltt}
+\%union \{
+  char* ident; 
+  int   cent;  
+\}
+\end{alltt}
+\end{minipage} 
+&
+\begin{minipage}[c]{.70\linewidth}
+\begin{listas}{}{0}{5}
+\item \item [\texttt{\bf 3.}] \textcolor{blue}{\large Calcular
+    atributos de terminales}
+
+  La información de la \textcolor{blue}{\texttt{~\%union}} ~también se
+  propaga \\[2mm]
+  en el fichero \textcolor{blue}{~asin.h} ~al AL.
+
+\vspace{0mm}
+\begin{alltt}
+
+[0-9]+ 
+
+   \{yylval.cent=atoi(yytext); return(CTE_);\} 
+\end{alltt}
+\end{listas}
+\end{minipage} 
+\end{tabular}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{acciones semáticas en {\sc bison}} %  4/6
+
+\vspace{0mm}
+\begin{tabular}{c|c}
+\begin{minipage}[c]{.30\linewidth}
+\hspace{10mm}exp$\;\rightarrow\;$fac$\;*\; cte$
+
+\vspace{15mm}\hspace{5mm}
+\begin{tabular}{|c|c|}
+& \\[4mm]
+\textcolor{blue}{\footnotesize CTE\_}     & $\bigcirc$ \\[4mm]
+\textcolor{blue}{\footnotesize OPMULT\_} &  ---       \\[4mm]
+\textcolor{red}{$<$fac$>$}     & $\bigcirc$ \\[2mm]
+$\ldots$ &$\ldots$\\[4mm] \hline
+\end{tabular}
+
+\vspace{6mm}\hspace{-4mm} %
+símbolos $\hookleftarrow\quad\hookrightarrow$ atributos
+
+\vspace{15mm}
+\begin{alltt}
+\%union \{
+  char* ident; 
+  int   cent;  
+\}
+\end{alltt}
+\end{minipage} 
+&
+\begin{minipage}[c]{.70\linewidth}
+\begin{listas}{}{0}{5}
+\item \item [\texttt{\bf 4.}] \textcolor{blue}{\large Acciones
+    semáticas en las reglas}
+
+
+\begin{alltt}
+
+exp : fac OPMULT_ CTE_  \{ \$\$ = \$1 * \$3; \} 
+    ;
+\end{alltt}
+\end{listas}
+\end{minipage} 
+\end{tabular}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{acciones semáticas en {\sc bison}} %  5/6
+
+\vspace{-5mm}
+\begin{listas}{}{0}{5}
+\item \item [\texttt{\bf 5.}] \textcolor{blue}{\large Acciones
+    semáticas en mitad de las reglas}
+
+\[
+  A\ \rightarrow\ B\;\; 
+     \textcolor{red}{\{\; \overset{\alpha}{\cdots}\; \}}\;\; C \;\;
+     \textcolor{red}{\{\; \overset{\beta}{\cdots}\; \}}
+\]
+
+% Equivale a:
+% \vspace{-10mm}
+% \begin{eqnarray*}
+%   A &\rightarrow& B\;\; @1\;\; C \qquad
+%      \textcolor{red}{\{\; \overset{\beta}{\cdots}\; \}} \\
+%   @1&\rightarrow& \epsilon \qquad\qquad\quad\;\;
+%    \textcolor{red}{\{\; \overset{\alpha}{\cdots}\; \}}
+% \end{eqnarray*}
+
+% Ejemplo:
+
+% \[
+%   A\ \rightarrow\ B\;\; 
+%      \textcolor{red}{\{\; \$\$ = \$1 * 10;\; \}}\;\; C \;\;
+%      \textcolor{red}{\{\; \$\$ = \$2 + \$3;\; \}}
+% \]
+\end{listas}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{acciones semáticas en {\sc bison}} %  5'/6
+
+\vspace{-5mm}
+\begin{listas}{}{0}{5}
+\item \item [\texttt{\bf 5.}] \textcolor{blue}{\large Acciones
+    semáticas en mitad de las reglas}
+
+\[
+  A\ \rightarrow\ B\;\; 
+     \textcolor{red}{\{\; \overset{\alpha}{\cdots}\; \}}\;\; C \;\;
+     \textcolor{red}{\{\; \overset{\beta}{\cdots}\; \}}
+\]
+
+Equivale a:
+\vspace{-10mm}
+\begin{eqnarray*}
+  A &\rightarrow& B\;\; @1\;\; C \qquad
+     \textcolor{red}{\{\; \overset{\beta}{\cdots}\; \}} \\
+  @1&\rightarrow& \epsilon \qquad\qquad\quad\;\;
+   \textcolor{red}{\{\; \overset{\alpha}{\cdots}\; \}}
+\end{eqnarray*}
+
+% Ejemplo:
+
+% \[
+%   A\ \rightarrow\ B\;\; 
+%      \textcolor{red}{\{\; \$\$ = \$1 * 10;\; \}}\;\; C \;\;
+%      \textcolor{red}{\{\; \$\$ = \$2 + \$3;\; \}}
+% \]
+\end{listas}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{acciones semáticas en {\sc bison}} %  6/6
+
+\vspace{-5mm}
+\begin{listas}{}{0}{5}
+\item \item [\texttt{\bf 5.}] \textcolor{blue}{\large Acciones
+    semáticas en mitad de las reglas}
+
+\[
+  A\ \rightarrow\ B\;\; 
+     \textcolor{red}{\{\; \overset{\alpha}{\cdots}\; \}}\;\; C \;\;
+     \textcolor{red}{\{\; \overset{\beta}{\cdots}\; \}}
+\]
+
+Equivale a:
+\vspace{-10mm}
+\begin{eqnarray*}
+  A &\rightarrow& B\;\; @1\;\; C \qquad
+     \textcolor{red}{\{\; \overset{\beta}{\cdots}\; \}} \\
+  @1&\rightarrow& \epsilon \qquad\qquad\quad\;\;
+   \textcolor{red}{\{\; \overset{\alpha}{\cdots}\; \}}
+\end{eqnarray*}
+
+Ejemplo:
+
+\[
+  A\ \rightarrow\ B\;\; 
+     \textcolor{red}{\{\; \$\$ = \$1 * 10;\; \}}\;\; C \;\;
+     \textcolor{red}{\{\; \$\$ = \$2 + \$3;\; \}}
+\]
+\end{listas}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{traspa}{270}{acciones semáticas en {\sc bison}} %  6/6
+
+\vspace{-5mm}
+\begin{listas}{}{0}{5}
+\item \item [\texttt{\bf 5.}] \textcolor{blue}{\large Acciones
+    semáticas en mitad de las reglas}
+
+\[
+  A\ \rightarrow\ B\;\; 
+     \textcolor{red}{\{\; \overset{\alpha}{\cdots}\; \}}\;\; C \;\;
+     \textcolor{red}{\{\; \overset{\beta}{\cdots}\; \}}
+\]
+
+Equivale a:
+\vspace{-10mm}
+\begin{eqnarray*}
+  A &\rightarrow& B\;\; @1\;\; C \qquad
+     \textcolor{red}{\{\; \overset{\beta}{\cdots}\; \}} \\
+  @1&\rightarrow& \epsilon \qquad\qquad\quad\;\;
+   \textcolor{red}{\{\; \overset{\alpha}{\cdots}\; \}}
+\end{eqnarray*}
+
+Ejemplo:
+
+\[
+  A\ \rightarrow\ B\;\; 
+     \textcolor{red}{\{\; \$<cent>\$ = \$1 * 10;\; \}}\;\; C \;\;
+     \textcolor{red}{\{\; \$\$ = \$<cent>2 + \$3;\; \}}
+\]
+\end{listas}
+
+\end{traspa}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
