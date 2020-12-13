@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include "header.h"
 #include "libtds.h"
+#include <string.h>
+
 %}
 
 %union {
@@ -21,13 +23,13 @@
 %token <cent> CTE_
 %token <ident> ID_
 
-%type<aux> listaDeclaraciones declaracion declaracionVariable  tipoSimple declaracionFuncion cabeceraFuncion parametrosFormales
-%type<aux> parametrosActuales listaParametrosActuales operadorUnario
+%type <aux> listaDeclaraciones declaracion declaracionVariable  tipoSimple declaracionFuncion cabeceraFuncion
+%type <aux> parametrosActuales listaParametrosActuales operadorUnario 
 
-%type<arg> parametrosFormales listaParametrosFormales
+%type <arg> parametrosFormales listaParametrosFormales
 
-%type<expre> expresionOpcional expresion expresionIgualdad expresionRelacional expresionAditiva expresionMultiplicativa
-%type<expre> expresionUnaria expresionSufija constante
+%type <expre> expresionOpcional expresion expresionIgualdad expresionRelacional expresionAditiva expresionMultiplicativa
+%type <expre> expresionUnaria expresionSufija constante
 
 
 
