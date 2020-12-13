@@ -2,6 +2,7 @@
 // Comprobad el resultado con la funcion "verTdS" 
 //----------------------------------------------------
 bool a;
+bool h;
 int  b[27];
 
 int F (int x, int y)

@@ -3,6 +3,10 @@
 /** definiciones de constantes, variables y estructuras para MenosC.        **/
 /** Los alumnos deberán adaptarlo al desarrollo de su propio compilador.     **/
 /*****************************************************************************/
+
+/********************************/
+#define TRAZA printf("Linea %d",__LINE__)
+/********************************/
 #ifndef _HEADER_H
 #define _HEADER_H
 

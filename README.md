@@ -14,7 +14,7 @@
 ##### TO DO
 - [ ] Ejecutar tests desde makefile
 - [ ] Build and release dirs
-- [X] Pasar tests  
+- [X] Pasar tests 
 
 
 ### ENTREGA 2
@@ -39,7 +39,7 @@
 - [X] instruccionAsignacion
 - [X] instruccionEntradaSalida
 - [X] instruccionSeleccion
-- [X]instruccionIteracion
+- [X] instruccionIteracion
 
 #### Expresiones
 - [X] expresionOpcional

@@ -9,7 +9,7 @@
 %option yylineno
 
 delimitador     [ \t\n]+
-identificador   [_a-zA-Z][_a-zA-Z0-9]*
+identificador   [a-zA-Z][_a-zA-Z0-9]*
 numero          [0-9]+("."[0-9]*)?|[0-9]*"."[0-9]+
 comentario      \/\/.*\n
 
@@ -59,7 +59,7 @@ comentario      \/\/.*\n
 "!"		       { return(NOT_); }
 "%"		       { return(MOD_); }
 
-"{"            { return(ALLAVE_); fprintf(stdout,"%3d.- ",yylineno); }
+"{"            { return(ALLAVE_); }
 "}"            { return(CLLAVE_); }
 "["            { return(ACORCH_); }
 "]"            { return(CCORCH_); }
@@ -69,8 +69,8 @@ comentario      \/\/.*\n
 "."            { return(PTO_); }
 ","            { return(CMA_); }
 
-{numero}        {yylval.cent = atoi(yytext); return (CTE_) ; }
+{numero}            {yylval.cent = atoi(yytext); return (CTE_) ; }
 {identificador}     {yylval.cent = strdup(yytext); return (ID_); }
-.		{ yyerror("Caracter desconocido") ;}
+.		            { yyerror("Caracter desconocido") ;}
 
 %%
