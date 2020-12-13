@@ -1049,27 +1049,29 @@ YY_RULE_SETUP
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 72 "src/alex.l"
+#line 73 "src/alex.l"
 {yylval.cent = atoi(yytext); return (CTE_) ; }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 73 "src/alex.l"
+#line 74 "src/alex.l"
 {yylval.cent = strdup(yytext); return (ID_); }
+	YY_BREAK
+case YY_STATE_EOF(INITIAL):
+#line 76 "src/alex.l"
+{if (verbosidad) {fprintf(stdout, "\n");}return 0;}
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 74 "src/alex.l"
+#line 77 "src/alex.l"
 { yyerror("Caracter desconocido") ;}
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 76 "src/alex.l"
+#line 79 "src/alex.l"
 ECHO;
 	YY_BREAK
-#line 1071 "alex.c"
-case YY_STATE_EOF(INITIAL):
-	yyterminate();
+#line 1075 "alex.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -2084,5 +2086,5 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 76 "src/alex.l"
+#line 79 "src/alex.l"
 

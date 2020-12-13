@@ -105,9 +105,8 @@ union YYSTYPE
     int cent;               // Para el terminal "cte" entera
     int aux;                // Para los no terminales con atributo simbple
     EXPR expre;             // Para los no terminales expresion
-    ARGU arg;               // Para los argumentos
 
-#line 111 "asin.h"
+#line 110 "asin.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

@@ -4,7 +4,7 @@
 /** Los alumnos deberán adaptarlo al desarrollo de su propio compilador.     **/
 /*****************************************************************************/
 
-/********************************/
+/***************** Para ver ultima linea ejecutada antes de un seg fault */
 #define TRAZA printf("Linea %d",__LINE__)
 /********************************/
 #ifndef _HEADER_H
@@ -37,15 +37,10 @@ extern int verbosidad;                   /* Flag si se desea una traza       */
 extern int numErrores;              /* Contador del numero de errores        */
 
 
-/************************************************ Struct para los registros */
-typedef struct arg {
-    int ref;
-    int talla;
-} ARGU;
 
 /************************************************ Struct para las expresiones */
 typedef struct expre {
-    int pos;
+    int valor;
     int tipo;
 } EXPR;
 

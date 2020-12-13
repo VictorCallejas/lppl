@@ -19,22 +19,22 @@ comentario      \/\/.*\n
 {delimitador}  {if (verbosidad) ECHO ; }
 {comentario}   {if (verbosidad){  ECHO;  }}
 
-"true"         {return (TRUE_) ;}
-"false"        {return (FALSE_) ;}
+true         {return (TRUE_) ;}
+false        {return (FALSE_) ;}
 
-"print"        {return (PRINT_) ;}
-"read"         {return (READ_) ;}
+print        {return (PRINT_) ;}
+read         {return (READ_) ;}
 
-"return"       {return (RETURN_); }
+return       {return (RETURN_); }
 
-"struct"       {return (FALSE_) ;}
-"int"          {return (INT_);}
-"bool"         {return (BOOL_) ;}
+struct       {return (FALSE_) ;}
+int          {return (INT_);}
+bool         {return (BOOL_) ;}
 
-"while"        {return (WHILE_) ;}
-"for"          {return (FOR_) ;}
-"if"           {return (IF_) ;}
-"else"         {return (ELSE_) ;}
+while        {return (WHILE_) ;}
+for          {return (FOR_) ;}
+if           {return (IF_) ;}
+else         {return (ELSE_) ;}
 
 "+"		 	   { return (MAS_) ; }
 "-"            { return (MENOS_) ; }
@@ -69,8 +69,11 @@ comentario      \/\/.*\n
 "."            { return(PTO_); }
 ","            { return(CMA_); }
 
+
 {numero}            {yylval.cent = atoi(yytext); return (CTE_) ; }
 {identificador}     {yylval.cent = strdup(yytext); return (ID_); }
+
+<<EOF>>	{if (verbosidad) {fprintf(stdout, "\n");}return 0;}
 .		            { yyerror("Caracter desconocido") ;}
 
 %%
