@@ -1,7 +1,7 @@
 /*****************************************************************************/
 /**   Ejemplo de un posible fichero de cabeceras donde situar las           **/
 /** definiciones de constantes, variables y estructuras para MenosC.        **/
-/** Los alumos deberan adaptarlo al desarrollo de su propio compilador.     **/
+/** Los alumnos deberán adaptarlo al desarrollo de su propio compilador.     **/
 /*****************************************************************************/
 #ifndef _HEADER_H
 #define _HEADER_H
@@ -9,8 +9,8 @@
 /************************************* Constantes simbólicas P2 */
 #define TRUE 1
 #define FALSE 0
-#define GLOBAL "global"
-#define LOCAL "local"
+#define GLOBAL 0
+#define LOCAL 1
 #define TALLA_TIPO_SIMPLE 1 /* Talla asociada a los tipos simples */
 #define TALLA_SEGENLACES 2 /* Talla del segmento de Enlaces de Control */
 
@@ -39,7 +39,7 @@ typedef struct arg {
     int talla;
 } ARGU;
 
-/************************************************ Struct para las expresions */
+/************************************************ Struct para las expresiones */
 typedef struct expre {
     int pos;
     int tipo;

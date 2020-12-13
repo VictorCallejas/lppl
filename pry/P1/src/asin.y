@@ -5,7 +5,7 @@
 
 %token CTE_ ID_
 %token WHILE_ FOR_ IF_ ELSE_ TRUE_ FALSE_ PRINT_ READ_ RETURN_
-%token INT_ BOOL_ 
+%token INT_ BOOL_
 %token ALLAVE_  CLLAVE_ ACORCH_  CCORCH_ APAREN_ CPAREN_ PTOCOMA_ PTO_ CMA_
 %token MAS_ MENOS_ POR_ DIV_
 %token AND_ OR_ SUMASIG_ RESASIG_ MULASIG_ DIVASIG_ IGUAL_ NOIGUAL_ MAYIGUAL_ MENIGUAL_ INC_ DEC_  MAY_ MEN_ ASIG_ NOT_ MOD_
@@ -14,7 +14,7 @@
 programa                        : listaDeclaraciones
                                 ;
 
-listaDeclaraciones              : declaracion 
+listaDeclaraciones              : declaracion
                                 | listaDeclaraciones declaracion
                                 ;
 
@@ -36,7 +36,7 @@ declaracionFuncion              : cabeceraFuncion bloque
 cabeceraFuncion                 : tipoSimple ID_ APAREN_ parametrosFormales CPAREN_
                                 ;
 
-parametrosFormales              : 
+parametrosFormales              :
                                 | listaParametrosFormales
                                 ;
 
@@ -47,11 +47,11 @@ listaParametrosFormales         : tipoSimple ID_
 bloque                          : ALLAVE_ declaracionVariableLocal listaInstrucciones RETURN_ expresion PTOCOMA_ CLLAVE_
                                 ;
 
-declaracionVariableLocal        : 
+declaracionVariableLocal        :
                                 | declaracionVariableLocal declaracionVariable
                                 ;
 
-listaInstrucciones              : 
+listaInstrucciones              :
                                 | listaInstrucciones instruccion
                                 ;
 
@@ -76,7 +76,7 @@ instruccionSeleccion            : IF_ APAREN_ expresion CPAREN_ instruccion ELSE
 instruccionIteracion            : FOR_ APAREN_ expresionOpcional PTOCOMA_ expresion PTOCOMA_ expresionOpcional CPAREN_ instruccion
                                 ;
 
-expresionOpcional               : 
+expresionOpcional               :
                                 | expresion
                                 | ID_ ASIG_ expresion
                                 ;
@@ -114,7 +114,7 @@ expresionSufija                 : APAREN_ expresion CPAREN_
                                 | constante
                                 ;
 
-parametrosActuales              : 
+parametrosActuales              :
                                 | listaParametrosActuales
                                 ;
 
