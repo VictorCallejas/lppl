@@ -122,7 +122,8 @@ declaracionFuncion              :cabeceraFuncion
                                 bloque
                                     {
                                         descargaContexto(niv);
-                                        niv=GLOBAL;
+                                        // niv=GLOBAL;
+                                        niv--;
                                         // Es dos porque el corchete de arriba actua como otro elemento y nosotros almacenamos dvar en $<aux>$
                                         dvar = $<aux>2;
                                     }
@@ -130,7 +131,8 @@ declaracionFuncion              :cabeceraFuncion
 
 cabeceraFuncion                 : tipoSimple ID_
                                     {
-                                        niv = LOCAL;
+                                        // niv = LOCAL;
+                                        niv ++;
                                         cargaContexto(niv);
                                     }
                                  APAREN_ parametrosFormales CPAREN_
@@ -149,7 +151,7 @@ parametrosFormales              :
                                 | listaParametrosFormales
                                 //  Pseudocódigo diapos  PF ⇒ LF ==> PF.t = LF.t; PF.talla = LF.talla − TallaSegEnlaces;
                                     {
-                                        $$ = $1;
+                                        $$ = $1; 
                                     }
                                 ;
 
@@ -279,7 +281,8 @@ expresionOpcional               : %empty
 
 expresion                       : expresionIgualdad
                                     {
-                                        $$ = $1;
+                                        $$.tipo = $1.tipo;
+                                        $$.valor = $1.valor;
                                     }
                                 | expresion operadorLogico expresionIgualdad
                                     {
@@ -298,7 +301,8 @@ expresion                       : expresionIgualdad
                                 ;
 expresionIgualdad               : expresionRelacional
                                     {
-                                        $$ = $1;
+                                        $$.tipo = $1.tipo;
+                                        $$.valor = $1.valor;
                                     }
                                 | expresionIgualdad operadorIgualdad expresionRelacional
                                      {
@@ -318,7 +322,8 @@ expresionIgualdad               : expresionRelacional
 
 expresionRelacional             : expresionAditiva
                                     {
-                                        $$ = $1;
+                                        $$.tipo = $1.tipo;
+                                        $$.valor = $1.valor;
                                     }
                                 | expresionRelacional operadorRelacional expresionAditiva
                                     {
@@ -334,7 +339,8 @@ expresionRelacional             : expresionAditiva
 
 expresionAditiva                : expresionMultiplicativa
                                     {
-                                        $$ = $1;
+                                        $$.tipo = $1.tipo;
+                                        $$.valor = $1.valor;
                                     }
                                 | expresionAditiva operadorAditivo expresionMultiplicativa
                                     {
@@ -350,7 +356,8 @@ expresionAditiva                : expresionMultiplicativa
 
 expresionMultiplicativa         : expresionUnaria
                                     {
-                                        $$ = $1;
+                                        $$.tipo = $1.tipo;
+                                        $$.valor = $1.valor;
                                     }
                                 | expresionMultiplicativa operadorMultiplicativo expresionUnaria
                                     {
@@ -367,6 +374,7 @@ expresionMultiplicativa         : expresionUnaria
 expresionUnaria                 : expresionSufija
                                     {
                                         $$.tipo = $1.tipo;
+                                        $$.valor = $1.valor;
                                     }
                                 | operadorUnario expresionUnaria
                                     {
@@ -378,9 +386,9 @@ expresionUnaria                 : expresionSufija
                                             }
                                             else
                                             {
-                                                if ($1 == NOT_ && $2.tipo != T_LOGICO) {
+                                                if ($1 == OP_NOT && $2.tipo != T_LOGICO) {
                                                     yyerror("Error en expresionUnaria, solo se puede realizar expresion not T_LOGICO");
-                                                } else if (($1 == MAS_ || $1 == MENOS_ ) && $2.tipo != T_ENTERO) {
+                                                } else if (($1 == OP_MAS || $1 == OP_MENOS ) && $2.tipo != T_ENTERO) {
                                                     yyerror("Error en expresionUnaria, los cambios de signo solo se aplican a enteros");
                                                 } else {
                                                     $$.tipo = $2.tipo;
@@ -409,7 +417,8 @@ expresionUnaria                 : expresionSufija
 
 expresionSufija                 : APAREN_ expresion CPAREN_
                                     {
-                                        $$ = $2;
+                                        $$.tipo = $2.tipo;
+                                        $$.valor = $2.valor;
                                     }
                                 | ID_ operadorIncremento
                                     {
@@ -486,7 +495,8 @@ expresionSufija                 : APAREN_ expresion CPAREN_
                                     }
                                 | constante
                                     {
-                                        $$ = $1;
+                                        $$.tipo = $1.tipo;
+                                        $$.valor = $1.valor;
                                     }
 
 parametrosActuales              : %empty
@@ -510,34 +520,34 @@ constante                       : CTE_ {
                                 }
                                 ;
 
-operadorLogico                  :AND_
-                                |OR_
+operadorLogico                  :AND_ { $$ = OP_AND; }
+                                |OR_ { $$ = OP_OR; }
                                 ;
 
-operadorIgualdad                :IGUAL_
-                                |NOIGUAL_
+operadorIgualdad                :IGUAL_  { $$ = OP_IGUAL; }
+                                |NOIGUAL_ { $$ = OP_NOIGUAL; }
                                 ;
 
-operadorRelacional              : MAY_
-                                | MEN_
-                                | MAYIGUAL_
-                                | MENIGUAL_
+operadorRelacional              : MAY_ { $$ = OP_MAYOR; }
+                                | MEN_ { $$ = OP_MENOR; }
+                                | MAYIGUAL_ { $$ = OP_MAYORIG; }
+                                | MENIGUAL_ { $$ = OP_MENORIG; }
                                 ;
 
-operadorAditivo                 : MAS_
-                                | MENOS_
+operadorAditivo                 : MAS_ { $$ = OP_SUMA;}
+                                | MENOS_ { $$ = OP_RESTA;}
                                 ;
 
-operadorMultiplicativo          : POR_
-                                | DIV_
-                                | MOD_
+operadorMultiplicativo          : POR_ { $$ = OP_MULT; }
+                                | DIV_ { $$ = OP_DIV; }
+                                | MOD_  { $$ = OP_MOD; }
                                 ;
 
-operadorUnario                  : MAS_
-                                | MENOS_
-                                | NOT_
+operadorUnario                  : MAS_ { $$ = OP_MAS; }
+                                | MENOS_ { $$ = OP_MENOS; }
+                                | NOT_ { $$ = OP_NOT; }
                                 ;
 
-operadorIncremento              : INC_
-                                | DEC_
+operadorIncremento              : INC_ { $$ = OP_INC; }
+                                | DEC_ { $$ = OP_DEC; }
                                 ;

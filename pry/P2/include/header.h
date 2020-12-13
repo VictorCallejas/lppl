@@ -10,6 +10,41 @@
 #ifndef _HEADER_H
 #define _HEADER_H
 
+
+
+/* Operador Logico*/
+#define OP_AND 0
+#define OP_OR  1
+
+/* Operador igualdad */
+#define OP_IGUAL    0
+#define OP_NOIGUAL 1
+
+/* Operador relacional */
+#define OP_MAYOR   0
+#define OP_MAYORIG 1
+#define OP_MENOR   2
+#define OP_MENORIG 3
+
+/* Operador aditivo */
+#define OP_SUMA  0
+#define OP_RESTA 1
+
+/* Operador multiplicativo */
+#define OP_MULT 0
+#define OP_DIV  1
+#define OP_MOD  2
+
+/* Operador unario */
+#define OP_MAS   0
+#define OP_MENOS 1
+#define OP_NOT   2
+
+/* Operador incremento */
+#define OP_INC 0
+#define OP_DEC 1
+
+
 /************************************* Constantes simbólicas P2 */
 #define TRUE 1
 #define FALSE 0
