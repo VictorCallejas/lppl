@@ -20,7 +20,6 @@
 
 %token <cent> CTE_
 %token <ident> ID_
-%token <cent>
 
 %type<aux> listaDeclaraciones declaracion declaracionVariable  tipoSimple declaracionFuncion cabeceraFuncion parametrosFormales
 %type<aux> parametrosActuales listaParametrosActuales operadorUnario
