@@ -9,7 +9,7 @@ LIBDIR = lib
 # Opciones de compilacion
 COPT = -Wall
 CLIB = -lfl -ltds
-OBJS = ./alex.o  ./asin.o ./principal.o 
+OBJS = ./alex.o  ./asin.o ./principal.o
 #
 cmc:	$(OBJS)  $(LIBDIR)/libtds.a
 	gcc $(OBJS) -I$(INCDIR) -L$(LIBDIR) $(COPT) $(CLIB) -o cmc
@@ -21,11 +21,11 @@ alex.o:	alex.c asin.c
 	gcc  -I$(INCDIR) $(COPT) -c alex.c
 asin.c:	$(SRCDIR)/asin.y
 	bison -oasin.c  -d $(SRCDIR)/asin.y
-	mv ./asin.h ./include	
-alex.c:	$(SRCDIR)/alex.l 
-	flex -oalex.c $(SRCDIR)/alex.l 
+	mv ./asin.h ./include
+alex.c:	$(SRCDIR)/alex.l
+	flex -oalex.c $(SRCDIR)/alex.l
 
 clean:
-	rm -f ./alex.c  ./asin.c ./include/asin.h 
+	rm -f ./alex.c  ./asin.c ./include/asin.h
 	rm -f ./*.o  ./include/*.?~  ./src/*.?~
 ###############################################################################

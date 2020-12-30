@@ -2,75 +2,79 @@
 #include <stdio.h>
 #include "header.h"
 #include "asin.h"
+#include <string.h>
 
-#define  return(x) {if (verbosidad) ECHO; return(x);}
+#define  retornar(x) {if (verbosidad) ECHO; return(x);}
 %}
 
 %option yylineno
 
-delimitador     [ \t\n]+
-identificador   [a-zA-Z][_a-zA-Z0-9]*
-numero          [0-9]+("."[0-9]*)?|[0-9]*"."[0-9]+
-comentario      \/\/.*\n
+delimitador    [ \t\n]+
+digito         [0-9]
+entero         {digito}+
+letra          [a-zA-Z]
+constante      {entero}|("."){entero}|{entero}(".")|{entero}("."){entero}
+identificador {letra}({letra}|{digito}|_)*
+comentario     \/\/.*
+
 
 %%
+{delimitador}  { if(verbosidad) ECHO ; }
+{comentario}   { if(verbosidad) {ECHO; printf("  %d.-", yylineno);}  }
+"\n"           { if(verbosidad) {ECHO; printf("  %d.-", yylineno);}  }
 
+"true"         {retornar (TRUE_) ;}
+"false"        {retornar (FALSE_) ;}
 
-{delimitador}  {if (verbosidad) ECHO ; }
-{comentario}   {if (verbosidad){  ECHO;  }}
+"print"        {retornar (PRINT_) ;}
+"read"         {retornar (READ_) ;}
 
-"true"         {return (TRUE_) ;}
-"false"        {return (FALSE_) ;}
+"return"       {retornar (RETURN_); }
 
-"print"        {return (PRINT_) ;}
-"read"         {return (READ_) ;}
+"struct"       {retornar (FALSE_) ;}
+"int"          {retornar (INT_);}
+"bool"         {retornar (BOOL_) ;}
 
-"return"       {return (RETURN_); }
+"while"        {retornar (WHILE_) ;}
+"for"          {retornar (FOR_) ;}
+"if"           {retornar (IF_) ;}
+"else"         {retornar (ELSE_) ;}
 
-"struct"       {return (FALSE_) ;}
-"int"          {return (INT_);}
-"bool"         {return (BOOL_) ;}
+"+"		 	   { retornar (MAS_) ; }
+"-"            { retornar (MENOS_) ; }
+"*"            { retornar (POR_) ; }
+"/"            { retornar (DIV_) ; }
 
-"while"        {return (WHILE_) ;}
-"for"          {return (FOR_) ;}
-"if"           {return (IF_) ;}
-"else"         {return (ELSE_) ;}
+"&&"		   { retornar(AND_); }
+"||"		   { retornar(OR_); }
+"+="		   { retornar(SUMASIG_); }
+"-="		   { retornar(RESASIG_); }
+"*="		   { retornar(MULASIG_); }
+"/="		   { retornar(DIVASIG_); }
+"=="		   { retornar(IGUAL_); }
+"!="		   { retornar(NOIGUAL_); }
+">="		   { retornar(MAYIGUAL_); }
+"<="		   { retornar(MENIGUAL_); }
+"++"		   { retornar(INC_); }
+"--"		   { retornar(DEC_); }
+">"		       { retornar(MAY_); }
+"<"		       { retornar(MEN_); }
+"="		       { retornar(ASIG_); }
+"!"		       { retornar(NOT_); }
+"%"		       { retornar(MOD_); }
 
-"+"		 	   { return (MAS_) ; }
-"-"            { return (MENOS_) ; }
-"*"            { return (POR_) ; }
-"/"            { return (DIV_) ; }
+"{"            { retornar(ALLAVE_); }
+"}"            { retornar(CLLAVE_); }
+"["            { retornar(ACORCH_); }
+"]"            { retornar(CCORCH_); }
+"("            { retornar(APAREN_);  }
+")"            { retornar(CPAREN_);   }
+";"            { retornar(PTOCOMA_); }
+"."            { retornar(PTO_); }
+","            { retornar(CMA_); }
 
-"&&"		   { return(AND_); }
-"||"		   { return(OR_); }
-"+="		   { return(SUMASIG_); }
-"-="		   { return(RESASIG_); }
-"*="		   { return(MULASIG_); }
-"/="		   { return(DIVASIG_); }
-"=="		   { return(IGUAL_); }
-"!="		   { return(NOIGUAL_); }
-">="		   { return(MAYIGUAL_); }
-"<="		   { return(MENIGUAL_); }
-"++"		   { return(INC_); }
-"--"		   { return(DEC_); }
-">"		       { return(MAY_); }
-"<"		       { return(MEN_); }
-"="		       { return(ASIG_); }
-"!"		       { return(NOT_); }
-"%"		       { return(MOD_); }
-
-"{"            { return(ALLAVE_); }
-"}"            { return(CLLAVE_); }
-"["            { return(ACORCH_); }
-"]"            { return(CCORCH_); }
-"("            { return(APAREN_);  }
-")"            { return(CPAREN_);   }
-";"            { return(PTOCOMA_); }
-"."            { return(PTO_); }
-","            { return(CMA_); }
-
-{numero}            {yylval.cent = atoi(yytext); return (CTE_) ; }
-{identificador}     {yylval.cent = strdup(yytext); return (ID_); }
+{constante}            { yylval.cent = atoi(yytext); retornar (CTE_); }
+{identificador}     { yylval.ident = strdup(yytext); retornar (ID_); }
 .		            { yyerror("Caracter desconocido") ;}
 
 %%

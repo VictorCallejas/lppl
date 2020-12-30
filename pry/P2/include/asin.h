@@ -103,7 +103,7 @@ union YYSTYPE
 
     char* ident;            // Para el terminal "identificador"
     int cent;               // Para el terminal "cte" entera
-    int aux;                // Para los no terminales con atributo simbple
+    int aux;                // Para los no terminales con atributo simple
     EXPR expre;             // Para los no terminales expresion
     ARGU arg;               // Para los argumentos
 

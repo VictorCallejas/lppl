@@ -81,12 +81,12 @@ expresionOpcional               :
                                 | ID_ ASIG_ expresion
                                 ;
 
-expresion                       : expresionigualdad
-                                | expresion operadorLogico expresionigualdad
+expresion                       : expresionIgualdad
+                                | expresion operadorLogico expresionIgualdad
                                 ;
 
-expresionigualdad               : expresionRelacional
-                                | expresionigualdad operadorigualdad expresionRelacional
+expresionIgualdad               : expresionRelacional
+                                | expresionIgualdad operadorIgualdad expresionRelacional
                                 ;
 
 expresionRelacional             : expresionAditiva
@@ -128,12 +128,12 @@ constante                       : CTE_
                                 | FALSE_
                                 ;
 
-operadorLogico                  :AND_
-                                |OR_
+operadorLogico                  : AND_
+                                | OR_
                                 ;
 
-operadorigualdad                :IGUAL_
-                                |NOIGUAL_
+operadorIgualdad                : IGUAL_
+                                | NOIGUAL_
                                 ;
 
 operadorRelacional              : MAY_
