@@ -196,7 +196,7 @@ cabeceraFuncion                 : tipoSimple ID_
                                         else{
                                             $$ = 0;
                                         }
-                                        if(!insTdS($2, FUNCION, $1, niv, dvar, $5.ref)) {
+                                        if(!insTdS($2, FUNCION, $1, niv, si, $5.ref)) {
                                             yyerror("Error en cabeceraFuncion, funcion ya definida");
                                         }
                                     }
@@ -258,7 +258,7 @@ listaParametrosFormales         : tipoSimple ID_
                                         int ref = insTdD(-1, $1);
                                         $$.talla = TALLA_TIPO_SIMPLE + TALLA_SEGENLACES;
                                         $$.ref = ref;
-                                        insTdS($2, PARAMETRO, $1, niv, dvar, -1);
+                                        insTdS($2, PARAMETRO, $1, niv, -$$.talla, -1);
 
                                     }
                                 | tipoSimple ID_ CMA_ listaParametrosFormales
@@ -269,9 +269,9 @@ listaParametrosFormales         : tipoSimple ID_
                                         }
 
                                         insTdD($4.ref, $1);
-                                        $$.talla += TALLA_TIPO_SIMPLE + TALLA_SEGENLACES;
+                                        $$.talla = TALLA_TIPO_SIMPLE + $4.talla;
                                         $$.ref = $4.ref;
-                                        insTdS($2, PARAMETRO, $1, niv, dvar, -1);
+                                        insTdS($2, PARAMETRO, $1, niv, -$$.talla , -1);
                                     }
                                 ;
 

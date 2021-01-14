@@ -26,6 +26,8 @@ extern int niv; /* Nivel de anidamiento "global" o "local" */
 extern int yylex();
 extern int yyparse();
 
+int lansReturn;
+
 extern FILE *yyin;                           /* Fichero de entrada           */
 extern int   yylineno;                       /* Contador del numero de linea */
 extern char *yytext;                         /* Patron detectado             */

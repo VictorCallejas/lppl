@@ -18,7 +18,6 @@ int main()
   for (i=2; i <= max; i++) a[i] = true;
   // a[4] = true
   n=3;
-  print(n);
 
   // Criba de Earatostenes
   for (OK = false; ! OK ;) {
