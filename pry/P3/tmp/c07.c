@@ -16,8 +16,7 @@ int main()
   }
   // Inicializacion del vector de posible primos
   for (i=2; i <= max; i++) a[i] = true;
-  // a[4] = true
-  n=3;
+  n=2;
 
   // Criba de Earatostenes
   for (OK = false; ! OK ;) {
