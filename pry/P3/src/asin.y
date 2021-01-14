@@ -53,9 +53,11 @@ programa                        :// Pseudocódigo diapos P ⇒ LD ==> n = 0; ∆
                                     /*************** Reserva de espacio para variables globales */
                                     $<refe>$.ref1 = creaLans(si);
                                     emite( INCTOP, crArgNul(), crArgNul(), crArgEnt(-1));
+                                    dvar +=1;
                                     /*************** Salto al comienzo de la funcion "main" */
                                     $<refe>$.ref2 = creaLans(si);
                                     emite(GOTOS, crArgNul(), crArgNul(), crArgEtq(-1));
+                                    dvar +=1;
                                 }
                                 listaDeclaraciones
                                     {
@@ -239,7 +241,7 @@ parametrosFormales              : %empty
                                 | listaParametrosFormales
                                 //  Pseudocódigo diapos  PF ⇒ LF ==> PF.t = LF.t; PF.talla = LF.talla − TallaSegEnlaces;
                                     {
-                                        $$.talla = $1.talla - TALLA_SEGENLACES;
+                                        $$.talla = $1.talla + TALLA_SEGENLACES;
                                     }
                                 ;
 
@@ -258,6 +260,14 @@ listaParametrosFormales         : tipoSimple ID_
                                         $$.talla = TALLA_TIPO_SIMPLE + TALLA_SEGENLACES;
                                         $$.ref = ref;
                                         insTdS($2, PARAMETRO, $1, niv, dvar, -1);
+                                        // SIMB sim = obtTdS($2);
+                                        // dvar = -TALLA_SEGENLACES + sim.d;
+
+                                        // if(!insTdS($2, PARAMETRO, $1, niv, dvar, -1)){
+                                        //     yyerror("Parametro no valido");
+                                        // } else{
+                                        //     $$.ref = insTdD(-1, $1);
+                                        // }
                                     }
                                 | tipoSimple ID_ CMA_ listaParametrosFormales
                                     {
@@ -270,6 +280,14 @@ listaParametrosFormales         : tipoSimple ID_
                                         $$.talla += TALLA_TIPO_SIMPLE + TALLA_SEGENLACES;
                                         $$.ref = $4.ref;
                                         insTdS($2, PARAMETRO, $1, niv, dvar, -1);
+                                        // SIMB sim = obtTdS($2);
+                                        // dvar = -TALLA_SEGENLACES + sim.d;
+
+                                        // if(!insTdS($2, PARAMETRO, $1, niv, dvar, $4.ref)){
+                                        //     yyerror("Parametro no valido");}
+                                        // else{
+                                        //     $$.ref = insTdD($4.ref,$1);
+                                        // }
                                     }
                                 ;
 
@@ -497,6 +515,10 @@ expresionIgualdad               : expresionRelacional
                                                         $$.tipo = T_LOGICO;
                                                 }
                                         }
+                                        $$.pos = creaVarTemp();
+                                        emite(EASIG, crArgEnt(1), crArgNul(), crArgPos(niv, $$.pos));
+                                        emite($2, crArgPos(niv, $1.pos), crArgPos(niv, $3.pos), crArgEtq(si + 2));
+                                        emite(EASIG, crArgEnt(0), crArgNul(), crArgPos(niv, $$.pos));
                                 }
                                 ;
 

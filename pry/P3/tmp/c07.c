@@ -16,12 +16,14 @@ int main()
   }
   // Inicializacion del vector de posible primos
   for (i=2; i <= max; i++) a[i] = true;
-
+  // a[4] = true
   n=3;
+  print(n);
+
   // Criba de Earatostenes
   for (OK = false; ! OK ;) {
     // Eliminacion de los multiplos de "n"
-    for (i = 2; (i * n) <= max; i++) a[i * n] = false; 
+    for (i = 2; (i * n) <= max; i++) a[i * n] = false;
     // Busqueda del siguiente primo
     for (i = n + 1;  (! a[i] && (i <= max)); i++) {}
     // Control del fin (n * n > max)
