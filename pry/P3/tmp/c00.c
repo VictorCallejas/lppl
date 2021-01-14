@@ -4,8 +4,10 @@
 int main ()
 { int a;
 
+
   read(a);
   a = (((((2 * a) - a) + a) / 2) * a);
+
   print(a);
 
   return 0;

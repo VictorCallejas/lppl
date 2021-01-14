@@ -17,12 +17,11 @@
 #define LOCAL 1
 #define TALLA_TIPO_SIMPLE 1 /* Talla asociada a los tipos simples */
 #define TALLA_SEGENLACES 2 /* Talla del segmento de Enlaces de Control */
-
+#define NOT 29
 /************************************* Variables Globales P2 */
 extern int verTdS; /* Flag para saber si mostrar la TdS */
 extern int dvar; /* Desplazamiento en el Segmento de Variables */
 extern int niv; /* Nivel de anidamiento "global" o "local" */
-
 /************************************* Variables externas definidas en el AL */
 extern int yylex();
 extern int yyparse();
@@ -48,6 +47,21 @@ typedef struct expre {
     int pos;
     int tipo;
 } EXPR;
+
+typedef struct for_inst /****** Estructura para los for */
+{
+  int ini;
+  int lv;
+  int lf;
+  int aux;
+}FOR_INST;
+
+
+typedef struct refe /****** Estructura para los for */
+{
+  int ref1;
+  int ref2;
+} REFE;
 
 #endif  /* _HEADER_H */
 /*****************************************************************************/

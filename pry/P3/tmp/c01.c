@@ -9,8 +9,8 @@ int main ()
   z= true;
   for (; z ;) {
     read(x); read(y);
-    if ((x != y) || false)          
-      if (!(x == 0) && true)                      
+    if ((x != y) || false)
+      if (!(x == 0) && true)
         if ((y > 0) && (x >= 0))
           if (y-x < 0) {
 	    print(x-y); z = false;
@@ -24,4 +24,4 @@ int main ()
   }
 
   return 0;
-} 
+}

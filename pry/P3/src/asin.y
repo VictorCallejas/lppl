@@ -3,6 +3,7 @@
 #include <string.h>
 #include "header.h"
 #include "libtds.h"
+#include "libgci.h"
 %}
 
 %union {
@@ -11,6 +12,9 @@
     int aux;                // Para los no terminales con atributo simple
     EXPR expre;             // Para los no terminales expresion
     ARGU arg;               // Para los argumentos
+    FOR_INST instfor;       // Para las instrucciones del for
+    REFE refe;
+
 }
 
 
@@ -29,11 +33,13 @@
 %type <aux> listaDeclaraciones declaracion tipoSimple declaracionFuncion cabeceraFuncion
 %type <aux> parametrosActuales listaParametrosActuales operadorUnario
 
+%type <cent> operadorLogico operadorIgualdad operadorRelacional operadorAditivo operadorMultiplicativo operadorIncremento
+
 // %type <arg>  listaParametrosFormales parametrosFormales
 %type <arg>  listaParametrosFormales parametrosFormales
 
 %type <expre> expresionOpcional expresion expresionIgualdad expresionRelacional expresionAditiva expresionMultiplicativa
-%type <expre> expresionUnaria expresionSufija constante
+%type <expre> expresionUnaria expresionSufija constante instruccionAsignacion
 
 
 // ∆ = primera posición libre en el segmento de datos. n = nivel del bloque actual.
@@ -42,10 +48,28 @@
 
 %%
 programa                        :// Pseudocódigo diapos P ⇒ LD ==> n = 0; ∆ = 0; Ω = 0;
-                                { niv = GLOBAL; dvar = 0; si = 0; cargaContexto(niv);}
+                                {
+                                    niv = GLOBAL; dvar = 0; si = 0; cargaContexto(niv);
+                                    /*************** Reserva de espacio para variables globales */
+                                    $<refe>$.ref1 = creaLans(si);
+                                    emite( INCTOP, crArgNul(), crArgNul(), crArgEnt(-1));
+                                    /*************** Salto al comienzo de la funcion "main" */
+                                    $<refe>$.ref2 = creaLans(si);
+                                    emite(GOTOS, crArgNul(), crArgNul(), crArgEtq(-1));
+                                }
                                 listaDeclaraciones
                                     {
+                                        // control del "main
                                         if ($2 == 0) yyerror("El programa no tiene main");
+
+                                        // lista declariones no tiene .d
+                                        $<cent>$ = creaVarTemp();
+
+                                        /***** Completa espacio para las variables globales */
+                                        completaLans($<refe>1.ref1, crArgEnt(dvar));
+
+                                        /***** Completa salto al comienzo del "main" */
+                                        completaLans($<refe>$.ref2, crArgEtq(XX));
                                     }
                                 ;
 
@@ -62,7 +86,6 @@ listaDeclaraciones              : declaracion
                                             $$ = $1;
                                         }
                                         else{
-                                            TRAZA;
                                             yyerror("El programa tiene mas de un main");
                                         }
                                     }
@@ -131,18 +154,28 @@ tipoSimple                      : INT_
  // Lo de local lo explica en el video es porque solo hay dos niveles local y global
 
 declaracionFuncion              :cabeceraFuncion
+                                // Emite(push(fp)); Emite(fp = sp);
+                                // D.d = CreaLans(Ω); Emite(sp = sp+⊗);
                                     {
                                         $<aux>$ = dvar;
-                                        dvar = 0;
                                     }
                                 bloque
+                                // CompletaLans(D.d, ∆); Emite(sp = fp);
+                                // Emite(fp = pop); Emite(return(pop));
                                     {
-                                        if (verTdS) mostrarTdS();
                                         descargaContexto(niv);
                                         niv=GLOBAL;
                                         // Es dos porque el corchete de arriba actua como otro elemento y nosotros almacenamos dvar en $<aux>$
                                         dvar = $<aux>2;
                                         $$ = $1;
+
+                                        /****************** Emite FIN si es "main" y RETURN si no es */
+                                        if ($1 == 1){
+                                            emite( FIN, crArgNul(), crArgNul(), crArgNul());
+                                        }
+                                        else {
+                                            emite( RET, crArgNul(), crArgNul(), crArgNul());
+                                        }
                                     }
                                 ;
 
@@ -152,9 +185,12 @@ cabeceraFuncion                 : tipoSimple ID_
                                         cargaContexto(niv);
                                     }
                                 APAREN_ parametrosFormales CPAREN_
+                                // Emite(push(fp)); Emite(fp = sp);
+                                // D.d = CreaLans(Ω); Emite(sp = sp+⊗);
                                     {
                                         if(strcmp($2, "main") == 0){
                                             $$ = 1;
+                                            XX = si;
                                         }
                                         else{
                                             $$ = 0;
@@ -165,7 +201,32 @@ cabeceraFuncion                 : tipoSimple ID_
                                     }
                                 ;
 
-bloque                          : ALLAVE_ declaracionVariableLocal listaInstrucciones RETURN_ expresion PTOCOMA_ CLLAVE_
+bloque                          :{
+                                    dvar = 0;
+                                    /************************* Carga de los enlaces de control */
+                                    emite( PUSHFP, crArgNul(), crArgNul(), crArgNul());
+                                    emite( FPTOP, crArgNul(), crArgNul(), crArgNul());
+                                    /***** Reserva de espacio para Variables locales y temporales */
+                                    $<aux>$ = creaLans(si);
+                                    emite(INCTOP, crArgNul(), crArgNul(), crArgEnt(-1));
+                                }
+                                ALLAVE_ declaracionVariableLocal listaInstrucciones RETURN_ expresion PTOCOMA_ CLLAVE_
+                                {
+                                    INF f = obtTdD(-1);
+                                    if (f.tipo == T_ERROR){
+                                        yyerror("Error en bloque, la función no esta compilada.");
+                                    }
+                                    /**** Completa la reserva de espacios para variables locales */
+                                    completaLans($<aux>1, crArgEnt(dvar));
+                                    /*********************************** guardar valor de retorno */
+                                    int dvret; /* Desplazamiento del valor retorno en el RA */
+                                    dvret = TALLA_SEGENLACES + f.tsp + TALLA_TIPO_SIMPLE;
+                                    emite(EASIG,crArgPos(niv, $6.pos),crArgNul(),crArgPos(niv, -dvret));
+                                    /********* Libera el segmento de variables locales y temporales */
+                                    emite(TOPFP, crArgNul(), crArgNul(), crArgNul());
+                                    /************************** Descarga de los enlaces de control */
+                                    emite(FPPOP, crArgNul(), crArgNul(), crArgNul());
+                                }
                                 ;
 
 parametrosFormales              : %empty
@@ -228,7 +289,8 @@ instruccion                     : ALLAVE_ listaInstrucciones CLLAVE_
                                 ;
 
 instruccionAsignacion           : ID_ ASIG_ expresion PTOCOMA_
-                                // Pseudocódigo diapos I ⇒ id = E ; ==> si ¬[ obtTdS(id.n, id.t) ∧ (id.t = E.t) ] MenError(.);
+                                // Pseudocódigo diapos I ⇒ id = E ; ==> si ¬[ obtTdS(id.n, id.t) ∧ (id.t = E.t) ] {MenError(.)}
+                                // sino Emite(id.d = E.d);
                                     {
                                         SIMB simb = obtTdS($1);
                                         if ($3.tipo == T_ERROR){
@@ -240,13 +302,14 @@ instruccionAsignacion           : ID_ ASIG_ expresion PTOCOMA_
                                         else if(simb.t != $3.tipo){
                                             yyerror("Error en instruccionAsignacion, el tipo de la variable no coincide con la expresión");
                                         }
-                                        else {
-                                            emite()
-                                        }
+
+                                        emite( EASIG, crArgPos(niv, $3.pos), crArgNul(), crArgPos(simb.n, simb.d));
                                     }
                                 | ID_ ACORCH_ expresion CCORCH_ ASIG_ expresion PTOCOMA_
-                                // Pseudocódigo diapos I ⇒ id [ E ] = E ; ==> si ¬[ obtTdS(id.n, id.t) ∧ (id.t = tvector(id.nel, id.tel)) ∧
-                                // (E1.t = tentero) ∧ (id.tel = E2.t) ] { MenError(.); }
+                                // Pseudocódigo diapos I ⇒ id [ E ] = E ; ==>
+                                // si ¬[ obtTdS(id.n, id.t) ∧ (id.t = tvector(id.nel, id.tel)) ∧ (E1.t = tentero) ∧ (id.tel = E2.t) ] { MenError(.); }
+                                // sino Emite(E1.d = E1.d ∗ talla(id.tel));
+                                // Emite(id.pos [ E1.pos ] = E2.pos);
                                     {
 
                                         SIMB simb = obtTdS($1);
@@ -271,6 +334,10 @@ instruccionAsignacion           : ID_ ASIG_ expresion PTOCOMA_
                                                 yyerror("Error en instruccionAsignacion, el tipo de la expresion no es igual al tipo de los elementos");
                                             }
                                         }
+
+                                        $$.pos = creaVarTemp();
+                                        emite(EASIG, crArgPos(niv, $6.pos), crArgNul(), crArgPos(niv, $$.pos));
+                                        emite(EVA, crArgPos(simb.n, simb.d), crArgPos(niv, $3.pos), crArgPos(niv, $6.pos));
                                     }
                                 ;
 
@@ -283,16 +350,19 @@ instruccionEntradaSalida        : READ_ APAREN_ ID_ CPAREN_ PTOCOMA_
                                     else if (simb.t != T_ENTERO) {
                                         yyerror("Error en instruccionEntradSalida, la variable ha de ser de tipo entero.");
                                     }
+                                    emite(EREAD, crArgNul(), crArgNul(), crArgPos(simb.n, simb.d));
                                 }
                                 | PRINT_ APAREN_ expresion CPAREN_ PTOCOMA_
                                 {
                                     if ($3.tipo != T_ERROR && $3.tipo != T_ENTERO){
                                         yyerror("Error en instruccionEntradSalida, la variable ha de ser de tipo entero.");
                                     }
+                                    emite(EWRITE, crArgNul(), crArgNul(), crArgPos(niv, $3.pos));
                                 }
                                 ;
 
 instruccionSeleccion            : IF_ APAREN_ expresion CPAREN_
+                                // S.If = CreaLans(Ω); Emite(if E.d = ’0’ goto ⊗)
                                 {
                                     if ($3.tipo == T_ERROR ){
                                         // EL error ya ha sido mostrado
@@ -300,33 +370,90 @@ instruccionSeleccion            : IF_ APAREN_ expresion CPAREN_
                                     else if ($3.tipo != T_LOGICO){
                                         yyerror("Error en instruccionSeleccion, la expresion ha de ser de tipo lógico.");
                                     }
-                                }
-                                instruccion ELSE_ instruccion
-                                ;
 
-instruccionIteracion            : FOR_ APAREN_ expresionOpcional PTOCOMA_ expresion                                 PTOCOMA_ expresionOpcional CPAREN_
-                                {
-                                    if($5.tipo != T_LOGICO) {
-                                        yyerror("Error en instruccionIteracion, la condicion no es logica");
-                                    }
+                                    $<cent>$ = creaLans(si);
+                                    emite(EIGUAL, crArgPos(niv, $3.pos), crArgEnt(0), crArgEtq(-1));
                                 }
                                 instruccion
+                                // S.fin = CreaLans(Ω); Emite(goto ⊗); CompletaLans(S.lf, Ω);
+                                {
+                                    $<cent>$ = creaLans(si);
+                                    emite(GOTOS, crArgNul(), crArgNul(), crArgEtq(-1));
+                                    completaLans($<cent>5, crArgEnt(si));
+                                }
+                                ELSE_ instruccion
+                                // CompletaLans(S.fin, Ω);
+                                {
+                                    completaLans($<cent>7, crArgEnt(si));
+                                }
+                                ;
+
+instruccionIteracion            : FOR_ APAREN_ expresionOpcional PTOCOMA_
+                                // S.ini = Ω;
+                                {
+                                    $<cent>$ = si;
+                                }
+                                expresion PTOCOMA_
+                                // S.lv = CreaLans(Ω); Emite(if E2.d = ’1’ goto ⊗);
+                                // S.lf = CreaLans(Ω); Emite(goto ⊗);
+                                // S.aux = Ω;
+                                {
+                                    if ($6.tipo != T_ERROR){
+                                        // El error ya ha sido mostrado
+                                    }
+                                    else if($6.tipo != T_LOGICO) {
+                                        yyerror("Error en instruccionIteracion, la condicion no es logica");
+                                    }
+
+                                    $<instfor>$.lv = creaLans(si);
+                                    emite(EIGUAL, crArgPos(niv, $6.pos), crArgEnt(1), crArgEtq(-1));
+
+                                    $<instfor>$.lf = creaLans(si);
+                                    emite(GOTOS, crArgNul(), crArgNul(), crArgEtq(-1));
+
+                                    $<instfor>$.aux = si;
+                                }
+                                expresionOpcional CPAREN_
+                                // Emite(goto S.ini); CompletaLans(S.lv, Ω);
+                                {
+                                    emite(GOTOS, crArgNul(), crArgNul(), crArgEtq($<cent>5));
+                                    completaLans($<instfor>8.lv, crArgEnt(si));
+                                }
+                                instruccion
+                                // Emite(goto S.aux); CompletaLans(S.lf, Ω);
+                                {
+                                    emite(GOTOS, crArgNul(), crArgNul(), crArgEtq($<instfor>8.aux));
+                                    completaLans($<instfor>8.lf, crArgEnt(si));
+                                }
                                 ;
 
 expresionOpcional               : %empty { $$.tipo == T_VACIO;
                                     }
                                 | expresion
                                     {
-                                        if($1.tipo != T_LOGICO) {
-                                            yyerror("Error en expresionOpcional, la expresion no es logica.");
-                                        }
+                                        $$ = $1;
                                     }
                                 | ID_ ASIG_ expresion
-                                    {
-                                        if($3.tipo != T_LOGICO) {
-                                            yyerror("Error en expresionOpcional, la expresion no es logica.");
+                                {
+                                    $$.tipo = T_ERROR;
+                                    SIMB simb = obtTdS($1);
+                                    if ($3.tipo != T_ERROR) {
+                                        if (simb.t == T_ERROR) {
+                                            yyerror("Error en expresionOpcional, varibale ya declarada");
+                                        } else if (!((simb.t == T_LOGICO && $3.tipo == T_LOGICO) ||
+                                                    (simb.t == T_ENTERO && $3.tipo == T_ENTERO))) {
+                                            yyerror("Error en expresionOpcional, los tipos no coinciden.");
+                                        } else {
+                                            $$.tipo = simb.t;
                                         }
                                     }
+
+
+                                    $$.pos = creaVarTemp();
+                                    emite(EASIG, crArgPos(niv, $3.pos), crArgNul(), crArgPos(niv, $$.pos));
+                                    emite(EASIG, crArgPos(niv, $3.pos), crArgNul(), crArgPos(simb.n, simb.d));
+
+                                }
                                 ;
 
 
@@ -337,14 +464,20 @@ expresion                       : expresionIgualdad
                                 | expresion operadorLogico expresionIgualdad
                                     {
                                         $$.tipo = T_ERROR;
-                                        if($1.tipo == T_ARRAY){
-                                            yyerror("Esto esta mal");
-                                        }
-                                        if($1.tipo != $3.tipo) {
-                                            yyerror("Error en expresion, los tipos no coinciden");
+                                        if($1.tipo == T_ERROR || $3.tipo == T_ERROR){
+                                            // Error printeado en su sitio
                                         }
                                         else {
-                                            $$.tipo = $1.tipo;
+                                            $$.tipo = T_LOGICO;
+                                        }
+
+                                        $$.pos = creaVarTemp();
+                                        if ($2 == AND_) {
+                                            emite(EMULT, crArgPos(niv, $1.pos), crArgPos(niv, $3.pos), crArgPos(niv, $$.pos));
+                                        } else if ($2 == OR_) {
+                                            emite(ESUM, crArgPos(niv, $1.pos), crArgPos(niv, $3.pos), crArgPos(niv, $$.pos));
+                                            emite(EMENEQ, crArgPos(niv, $$.pos), crArgEnt(1), crArgEtq(si + 2));
+                                            emite(EASIG, crArgEnt(1), crArgNul(), crArgPos(niv, $$.pos));
                                         }
                                     }
                                 ;
@@ -352,7 +485,7 @@ expresionIgualdad               : expresionRelacional
                                     {
                                         $$ = $1;
                                     }
-                                | expresionIgualdad operadorigualdad expresionRelacional
+                                | expresionIgualdad operadorIgualdad expresionRelacional
                                     {
                                         $$.tipo = T_ERROR;
                                         if ($1.tipo != T_ERROR && $3.tipo != T_ERROR){
@@ -381,6 +514,11 @@ expresionRelacional             : expresionAditiva
                                                 $$.tipo = T_LOGICO;
                                             }
                                         }
+
+                                    $$.pos = creaVarTemp();
+                                    emite(EASIG, crArgEnt(1), crArgNul(), crArgPos(niv, $$.pos));
+                                    emite($2, crArgPos( niv, $1.pos), crArgPos( niv, $3.pos), crArgEtq(si + 2));
+                                    emite(EASIG, crArgEnt(0), crArgNul(), crArgPos(niv, $$.pos));
                                     }
                                 ;
 
@@ -397,6 +535,9 @@ expresionAditiva                : expresionMultiplicativa
                                         else {
                                                 $$.tipo = $1.tipo;
                                             }
+
+                                    $$.pos = creaVarTemp();
+                                    emite($2, crArgPos(niv, $1.pos), crArgPos(niv, $3.pos), crArgPos(niv, $$.pos));
                                     }
                                 ;
 
@@ -405,14 +546,21 @@ expresionMultiplicativa         : expresionUnaria
                                         $$ = $1;
                                     }
                                 | expresionMultiplicativa operadorMultiplicativo expresionUnaria
+                                    //si ¬[ E1.t = E2.t = tentero ] { E.t = terror; MenError(.); }
+                                    // sino E.t = tentero; E.d = CreaVarTemp(E.t); Emite(E.d = E1.d mod E2.d);
                                     {
                                         $$.tipo = T_ERROR;
-                                        if($1.tipo != T_ENTERO || $3.tipo != T_ENTERO) {
+                                        if($1.tipo == T_ERROR || $3.tipo == T_ERROR){
+                                            // Error ya mostrado donde deber
+                                        }
+                                        else if($1.tipo != T_ENTERO || $3.tipo != T_ENTERO) {
                                             yyerror("Error en expresionMultiplicativa, los operandos no son de tipo entero");
                                         }
                                         else {
-                                                $$.tipo = $1.tipo;
-                                            }
+                                            $$.tipo = T_ENTERO;
+                                        }
+                                        $$.pos = creaVarTemp();
+                                        emite($2, crArgPos(niv, $1.pos), crArgPos(niv, $3.pos), crArgPos(niv, $$.pos));
                                     }
                                 ;
 
@@ -421,6 +569,10 @@ expresionUnaria                 : expresionSufija
                                         $$.tipo = $1.tipo;
                                     }
                                 | operadorUnario expresionUnaria
+                                    // E => - E
+                                    // si ( E.t 6= tentero ) { E.t = terror; MenError(.); }
+                                    // sino E.t = E1.t; E.d = CreaVarTemp(E.t);
+                                    // (Emite(E.d = - E1.d);
                                     {
                                         $$.tipo = T_ERROR;
                                         if ($2.tipo != T_ERROR )
@@ -430,14 +582,21 @@ expresionUnaria                 : expresionSufija
                                             }
                                             else
                                             {
-                                                if ($1 == NOT_ && $2.tipo != T_LOGICO) {
+                                                if ($1 == NOT && $2.tipo != T_LOGICO) {
                                                     yyerror("Error en expresionUnaria, solo se puede realizar expresion not con T_LOGICO");
-                                                } else if (($1 == MAS_ || $1 == MENOS_ ) && $2.tipo != T_ENTERO) {
+                                                } else if (($1 == ESUM || $1 == EDIF ) && $2.tipo != T_ENTERO) {
                                                     yyerror("Error en expresionUnaria, los cambios de signo solo se aplican a enteros");
                                                 } else {
                                                     $$.tipo = $2.tipo;
                                                 }
                                             }
+                                        }
+
+                                        $$.pos = creaVarTemp();
+                                        if ($1 == NOT) {
+                                            emite(EDIF, crArgEnt(1), crArgPos( niv, $2.pos), crArgPos(niv, $$.pos));
+                                        } else {
+                                            emite($1, crArgEnt(0), crArgPos(niv, $2.pos), crArgPos(niv, $$.pos));
                                         }
                                     }
                                 | operadorIncremento ID_
@@ -453,10 +612,14 @@ expresionUnaria                 : expresionSufija
                                         else {
                                             $$.tipo = T_ENTERO;
                                         }
+                                        $$.pos = creaVarTemp();
+                                        emite($1, crArgPos(simb.n,simb.d), crArgEnt(1), crArgPos(simb.n, simb.d));
+                                        emite(EASIG, crArgPos(simb.n,simb.d), crArgNul(), crArgPos(niv, $$.pos));
                                     }
                                 ;
 
 expresionSufija                 : APAREN_ expresion CPAREN_
+                                    // E.t = E1.t; E.d = E1.d;
                                     {
                                         $$ = $2;
                                     }
@@ -473,8 +636,14 @@ expresionSufija                 : APAREN_ expresion CPAREN_
                                         else {
                                             $$.tipo = simb.t;
                                         }
+                                        $$.pos = creaVarTemp();
+                                        emite(EASIG, crArgPos(simb.n, simb.d), crArgNul(), crArgPos(niv, $$.pos));
+                                        emite($2, crArgPos(simb.n, simb.d), crArgEnt(1), crArgPos(simb.n, simb.d));
                                     }
                                 | ID_ ACORCH_ expresion CCORCH_
+                                // E => id [E]
+                                // si ¬[ obtTdS(id.n, id.t, id.d) ∧ ( id.t = tvector(id.nel, id.tel)) ∧ (E1.t = tentero) ] { E.t = terror; MenError(.); }
+                                // sino E.t = id.tel; Emite(E1.d = E1.d ∗ talla(E.t)); E.d = CreaVarTemp(E.t); Emite(E.d = id.d [ E1.d ] );
                                     {
                                         $$.tipo = T_ERROR;
                                         SIMB simb = obtTdS($1);
@@ -494,10 +663,19 @@ expresionSufija                 : APAREN_ expresion CPAREN_
                                             }
                                             else {
                                                 $$.tipo = array.telem;
+                                                // emite(EMULT, crArg( niv, $3.pos), crArgEnt(TALLA_TIPO_SIMPLE), crArg( niv, $3.pos))
                                             }
                                         }
+                                        $$.pos = creaVarTemp();
+                                        emite(EAV, crArgPos(simb.n, simb.d), crArgPos(niv, $3.pos), crArgPos(niv, $$.pos));
                                     }
-                                | ID_ APAREN_ parametrosActuales CPAREN_
+                                | ID_ APAREN_
+                                {
+                                    /******************* Reserva espacio para el valor de retorno */
+                                    //emite( INCTOP, crArgNul(), crArgNul(), crArgEnt(TALLA_TIPO_SIMPLE));
+                                    emite( EPUSH, crArgNul(), crArgNul(), crArgEnt(0));
+                                }
+                                parametrosActuales CPAREN_
                                 // E ⇒ id ==> ( PA ) si ¬[ obtTdS(id.n, id.t) ∧ (id.t = tfuncion(id.td, id.tr))
                                 // ∧ (id.td = PA.t) ] { E.t = terror; MenError(.); }
                                 // sino E.t = id.tr;
@@ -512,14 +690,26 @@ expresionSufija                 : APAREN_ expresion CPAREN_
                                         {
                                             yyerror("Error en expresionSufija, la función no se corresponde con una ya compilada.");
                                         }
-                                        // else if (simb.t != $3.t ) {
+                                        // else if (simb.t != $4.t ) {
                                         //     yyerror("Error en expresionSufija, el tipo del dominio no coincide con el de los PA.");
                                         // }
                                         else{
                                             $$.tipo = dom.tipo;
                                         }
+
+                                        /************************************* Llamada a la funcion */
+                                        emite( CALL, crArgNul(), crArgNul(), crArgEtq(simb.d));
+                                        /*********************** Desapila el segmento de parametros */
+                                        emite( DECTOP, crArgNul(), crArgNul(), crArgEnt(dom.tsp));
+                                        /******************* Desapila y asigna el valor de retorno */
+                                        $$.pos = creaVarTemp();
+                                        emite( EPOP, crArgNul(), crArgNul(), crArgPos(niv, $$.pos));
+
                                     }
                                 | ID_
+                                // si ¬[ obtTdS(id.n, id.t, id.d) { MenError(.); E.t = terror; }
+                                // sino E.t = id.t; E.d = CreaVarTemp(E.t);
+                                // Emite(E.d = id.d);
                                     {
                                         $$.tipo = T_ERROR;
                                         SIMB simb = obtTdS($1);
@@ -529,10 +719,13 @@ expresionSufija                 : APAREN_ expresion CPAREN_
                                         else {
                                             $$.tipo = simb.t;
                                         }
+                                        $$.pos = creaVarTemp();
+                                        emite(EASIG, crArgPos(simb.n, simb.d), crArgNul(), crArgPos(niv, $$.pos));
                                     }
                                 | constante
+                                    // E.t = cte.t; E.d = CreaVarTemp(E.t); Emite(E.d = cte.num);
                                     {
-                                        $$.tipo = $1.tipo;
+                                        $$ = $1;
                                     }
 
 parametrosActuales              : %empty
@@ -540,45 +733,61 @@ parametrosActuales              : %empty
                                 ;
 
 listaParametrosActuales         : expresion
-                                | expresion CMA_ listaParametrosActuales
+                                {
+                                    emite( EPUSH, crArgNul(), crArgNul(), crArgPos(niv,$1.pos));
+                                }
+                                | expresion CMA_
+                                {
+                                    emite( EPUSH, crArgNul(), crArgNul(), crArgPos(niv,$1.pos));
+                                }
+                                listaParametrosActuales
                                 ;
-/***************************************************/
 
 constante                       : CTE_ {
                                         $$.tipo = T_ENTERO;
+                                        $$.pos = creaVarTemp();
+                                        emite(EASIG, crArgEnt($1), crArgNul(), crArgPos(niv, $$.pos));
                                         }
-                                | TRUE_ { $$.tipo = T_LOGICO; }
-                                | FALSE_ { $$.tipo = T_LOGICO; }
+                                | TRUE_ {
+                                        $$.tipo = T_LOGICO;
+                                        $$.pos = creaVarTemp();
+                                        emite(EASIG, crArgEnt(1), crArgNul(), crArgPos(niv, $$.pos));
+                                    }
+                                | FALSE_ {
+                                        $$.tipo = T_LOGICO;
+                                        $$.pos = creaVarTemp();
+                                        emite(EASIG, crArgEnt(0), crArgNul(), crArgPos(niv, $$.pos));
+                                }
                                 ;
 
-operadorLogico                  : AND_
-                                | OR_
+operadorLogico                  : AND_ {$$=AND_;}
+                                | OR_ {$$=OR_;}
                                 ;
 
-operadorigualdad                : IGUAL_
-                                | NOIGUAL_
+operadorIgualdad                : IGUAL_ { $$=EIGUAL; }
+                                | NOIGUAL_ { $$=EDIST; }
                                 ;
 
-operadorRelacional              : MAY_
-                                | MEN_
-                                | MAYIGUAL_
-                                | MENIGUAL_
+operadorRelacional              : MAY_ { $$=EMAY; }
+                                | MEN_ { $$=EMEN; }
+                                | MAYIGUAL_ { $$=EMAYEQ; }
+                                | MENIGUAL_ { $$=EMENEQ; }
                                 ;
 
-operadorAditivo                 : MAS_
-                                | MENOS_
+operadorAditivo                 : MAS_ { $$=ESUM; }
+                                | MENOS_ { $$=EDIF; }
                                 ;
 
-operadorMultiplicativo          : POR_
-                                | DIV_
-                                | MOD_
+operadorMultiplicativo          : POR_ { $$=EMULT; }
+                                | DIV_ { $$=EDIVI; }
+                                | MOD_ { $$=RESTO; }
                                 ;
 
-operadorUnario                  : MAS_ { $$=MAS_; }
-                                | MENOS_ { $$=MENOS_; }
-                                | NOT_ { $$=NOT_; }
+operadorUnario                  : MAS_ { $$=ESUM; }
+                                | MENOS_ { $$=EDIF; }
+                                | NOT_  {$$=NOT; }
                                 ;
 
-operadorIncremento              : INC_
-                                | DEC_
+operadorIncremento              : INC_ { $$=ESUM; }
+                                | DEC_ { $$=EDIF; }
                                 ;

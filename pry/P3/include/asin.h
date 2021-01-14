@@ -99,15 +99,18 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 8 "src/asin.y"
+#line 9 "src/asin.y"
 
     char* ident;            // Para el terminal "identificador"
     int cent;               // Para el terminal "cte" entera
     int aux;                // Para los no terminales con atributo simple
     EXPR expre;             // Para los no terminales expresion
     ARGU arg;               // Para los argumentos
+    FOR_INST instfor;       // Para las instrucciones del for
+    REFE refe;
 
-#line 111 "asin.h"
+
+#line 114 "asin.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
