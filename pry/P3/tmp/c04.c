@@ -1,14 +1,17 @@
 // Ejemplo de funciones y variables globales y locales
 // Lee dos numeros (0 <= x, y < 10) y obtiene (x+y/2)
 //----------------------------------------------------
+
 int a[10];
 
 bool inicializa (int x)
-{ int i;
+{
+  int i;
   for (i=0; i < x; i++)  a[i] = i;
 
   return true;
 }
+
 
 int suma(int x, int y)
 { int a;
